@@ -119,12 +119,16 @@ class Component(CommonInterface):
 
             while data_length >= 20:
 
+                logging.info(f'Processing establishment [{e_id}] - offset [{offset_param}]')
+
                 # request parameters
                 request_url = urllib.parse.urljoin(
                     url, 'reports/sales_summary/json')
                 request_param = params
                 request_param['offset'] = offset_param
                 request_param['establishment'] = e_id
+
+                logging.info(f'request_param: {request_param}')
 
                 # GET Request
                 data_in = self.get_request(
@@ -141,8 +145,6 @@ class Component(CommonInterface):
                 # Pagination parameters
                 data_length = len(data_in)
                 offset_param += 20
-
-            data_in = self.fetch(url, params, establishment_id)
 
     def get_header(self):
 
