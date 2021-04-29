@@ -1,0 +1,44 @@
+{
+    "type": "object",
+    "title": "extractor configuration",
+    "required": [
+        "url",
+        "api_key",
+        "#api_secret",
+        "establishment_id",
+        "start_date",
+        "end_date"
+    ],
+    "properties": {
+        "url": {
+            "type": "string",
+            "default": "https://",
+            "propertyOrder": 100
+        },
+        "api_key": {
+            "type": "string",
+            "propertyOrder": 200
+        },
+        "#api_secret": {
+            "type": "string",
+            "propertyOrder": 300
+        },
+        "establishment_id": {
+            "type": "string",
+            "propertyOrder": 400,
+            "description": "Comma seperated values."
+        },
+        "start_date": {
+          "type": "string",
+          "propertyOrder": 500,
+          "description": "Can accept values like yesterday, today, 2 days ago, 2 months ago, etc",
+          "default": "2 days ago"
+        },
+        "end_date": {
+          "type": "string",
+          "propertyOrder": 600,
+          "description": "Can accept values like yesterday, today, 2 days ago, 2 months ago, etc",
+          "default": "today"
+        }
+    }
+}
