@@ -106,7 +106,8 @@ class Component(CommonInterface):
 
         # output
         mappings, headers = self.get_header()
-        full_headers = headers.append('establishment_id')
+        full_headers = headers
+        full_headers.append('establishment_id')
         f = open(f'{self.tables_out_path}/sales_summary.csv', 'w')
         data_writer = csv.DictWriter(f, fieldnames=full_headers)
         data_writer.writeheader()
