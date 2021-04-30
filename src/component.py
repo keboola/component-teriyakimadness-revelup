@@ -88,14 +88,16 @@ class Component(CommonInterface):
         api_secret = params.get(KEY_API_SECRET)
         start_date = params.get(KEY_START_DATE)
         end_date = params.get(KEY_END_DATE)
+        start_date_parsed = dateparser.parse(start_date).strftime('%Y-%m-%d')
+        end_date_parsed = dateparser.parse(end_date).strftime('%Y-%m-%d')
 
         # Request params
         request_params = {
             'api_key': api_key,
             'api_secret': api_secret,
             'limit': 20,
-            'range_from': f'{start_date}T00:00:00',
-            'range_to': f'{end_date}T00:00:00',
+            'range_from': f'{start_date_parsed}T00:00:00',
+            'range_to': f'{end_date_parsed}T00:00:00',
             'show_unpaid': 1,
             'show_irregular': 1
         }
@@ -111,6 +113,7 @@ class Component(CommonInterface):
         f = open(f'{self.tables_out_path}/sales_summary.csv', 'w')
         data_writer = csv.DictWriter(f, fieldnames=full_headers)
         data_writer.writeheader()
+        no_data_bool = True
 
         for e_id in establishment_id_array:
 
@@ -136,16 +139,26 @@ class Component(CommonInterface):
                     url=request_url, params=tmp_param)
 
                 # Parsing mapping and outputting the row
-                self.parse_mapping(
-                    data_writer=data_writer,
-                    data_in=data_in,
-                    mapping=mappings,
-                    establishment_id=e_id
-                )
+                if data_in:
+                    self.parse_mapping(
+                        data_writer=data_writer,
+                        data_in=data_in,
+                        mapping=mappings,
+                        establishment_id=e_id
+                    )
 
-                # Pagination parameters
-                data_length = len(data_in)
-                offset_param += 20
+                    # Pagination parameters
+                    data_length = len(data_in)
+                    offset_param += 20
+
+                    no_data_bool = False
+                
+                else:
+                    data_length = 0
+        f.close()    
+        if no_data_bool:
+            os.remove(f'{self.tables_out_path}/sales_summary.csv')
+            logging.info('No data to output.')
 
     def get_header(self):
 
@@ -189,10 +202,10 @@ class Component(CommonInterface):
         if response.status_code not in (200, 201):
             logging.warning(f'{response.status_code} - {response.text}')
 
-        if 'sales_summary' in response.json():
+        try:
             return response.json()['sales_summary']
-        else:
-            return []
+        except Exception:
+            return None
 
     def parse_mapping(self, data_writer, data_in, mapping, establishment_id):
 
