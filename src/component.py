@@ -90,7 +90,7 @@ class Component(CommonInterface):
         end_date = params.get(KEY_END_DATE)
 
         # Request params
-        params = {
+        request_params = {
             'api_key': api_key,
             'api_secret': api_secret,
             'limit': 20,
@@ -124,15 +124,15 @@ class Component(CommonInterface):
                 # request parameters
                 request_url = urllib.parse.urljoin(
                     url, 'reports/sales_summary/json')
-                request_param = params
-                request_param['offset'] = offset_param
-                request_param['establishment'] = e_id
+                tmp_param = request_params
+                tmp_param['offset'] = offset_param
+                tmp_param['establishment'] = e_id
 
-                logging.info(f'request_param: {request_param}')
+                logging.info(f'request_param: {tmp_param}')
 
                 # GET Request
                 data_in = self.get_request(
-                    url=request_url, params=request_param)
+                    url=request_url, params=tmp_param)
 
                 # Parsing mapping and outputting the row
                 self.parse_mapping(
