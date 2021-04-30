@@ -84,7 +84,7 @@ class Component(CommonInterface):
 
         # Request parameters
         url = params.get(KEY_URL)
-        api_key = params.get(KEY_API_SECRET)
+        api_key = params.get(KEY_API_KEY)
         api_secret = params.get(KEY_API_SECRET)
         start_date = params.get(KEY_START_DATE)
         end_date = params.get(KEY_END_DATE)
@@ -92,16 +92,32 @@ class Component(CommonInterface):
         end_date_parsed = dateparser.parse(end_date).strftime('%Y-%m-%d')
 
         # Request params
+        request_url = urllib.parse.urljoin(
+            url, 'reports/sales_summary/json/')
+        logging.info(f'request_url - {request_url}')
         request_params = {
-            'api_key': api_key,
-            'api_secret': api_secret,
             'limit': 20,
-            'range_from': f'{start_date_parsed}T00:00:00',
-            'range_to': f'{end_date_parsed}T00:00:00',
             'show_unpaid': 1,
-            'show_irregular': 1
+            'show_irregular': 1,
+            'range_from': f'{start_date_parsed}T00:00:00',
+            'range_to': f'{end_date_parsed}T00:00:00'
         }
 
+        '''
+        request_headers = {
+            'Accept': 'application/json',
+            'API-AUTHENTICATION': f'{api_key}:{api_secret}',
+            'Cookie': 'csrftoken=GnFV46R3djUM3BL1bdSEU4TVHSTLTroZhtADVrNM2u6W0fCo6rg1RR7CzWoCk2N9; sessionid=bc9ewx8l87fjga4n7nq7hinc4ko76tf5'
+        }
+        '''
+
+        api_authentication = api_key+':'+api_secret
+
+        request_headers = {
+            'API-AUTHENTICATION': api_authentication
+        }
+
+        logging.info(f'request headers: {request_headers}')
         # Establishments
         establishment_id = params.get(KEY_ESTABLISHMENT_ID).replace(' ', '')
         establishment_id_array = establishment_id.split(',')
@@ -113,7 +129,7 @@ class Component(CommonInterface):
         f = open(f'{self.tables_out_path}/sales_summary.csv', 'w')
         data_writer = csv.DictWriter(f, fieldnames=full_headers)
         data_writer.writeheader()
-        no_data_bool = True
+        # no_data_bool = True
 
         for e_id in establishment_id_array:
 
@@ -123,20 +139,20 @@ class Component(CommonInterface):
 
             while data_length >= 20:
 
-                logging.info(f'Processing establishment [{e_id}] - offset [{offset_param}]')
+                logging.info(
+                    f'Processing establishment [{e_id}] - offset [{offset_param}]')
 
                 # request parameters
-                request_url = urllib.parse.urljoin(
-                    url, 'reports/sales_summary/json')
+
                 tmp_param = request_params
                 tmp_param['offset'] = offset_param
-                tmp_param['establishment'] = e_id
+                tmp_param['establishment'] = int(e_id)
 
                 logging.info(f'request_param: {tmp_param}')
 
                 # GET Request
                 data_in = self.get_request(
-                    url=request_url, params=tmp_param)
+                    url=request_url, params=tmp_param, headers=request_headers)
 
                 # Parsing mapping and outputting the row
                 if data_in:
@@ -151,14 +167,16 @@ class Component(CommonInterface):
                     data_length = len(data_in)
                     offset_param += 20
 
-                    no_data_bool = False
-                
+                    # no_data_bool = False
+
                 else:
                     data_length = 0
-        f.close()    
+
+        f.close()
+        '''
         if no_data_bool:
             os.remove(f'{self.tables_out_path}/sales_summary.csv')
-            logging.info('No data to output.')
+            logging.info('No data to output.')'''
 
     def get_header(self):
 
@@ -195,15 +213,15 @@ class Component(CommonInterface):
             logging.error('StartDate cannot be larger than EndDate')
             sys.exit(1)
 
-    def get_request(self, url, params):
+    def get_request(self, url, params, headers):
 
-        response = requests.get(url, params=params)
+        response = requests.get(url, params=params, headers=headers)
 
         if response.status_code not in (200, 201):
-            logging.warning(f'{response.status_code} - {response.text}')
+            logging.warning(f'{response.status_code}')
 
         try:
-            return response.json()['sales_summary']
+            return response.json()
         except Exception:
             return None
 
@@ -212,8 +230,9 @@ class Component(CommonInterface):
         for row in data_in:
 
             tmp_data = {}
-            for i in mapping:
-                tmp_data[mapping[i]] = row.get(i)
+
+            for i in mapping['sales_summary']:
+                tmp_data[mapping['sales_summary'][i]] = row.get(i)
 
             # adding esablishment id
             tmp_data['establishment_id'] = establishment_id
