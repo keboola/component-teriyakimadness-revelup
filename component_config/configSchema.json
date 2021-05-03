@@ -7,7 +7,10 @@
         "#api_secret",
         "establishment_id",
         "start_date",
-        "end_date"
+        "end_date",
+        "show_opened",
+        "show_unpaid",
+        "show_irregular"
     ],
     "properties": {
         "url": {
@@ -39,6 +42,24 @@
           "propertyOrder": 600,
           "description": "Can accept values like yesterday, today, 2 days ago, 2 months ago, etc",
           "default": "today"
+        },
+        "show_opened": {
+            "type": "boolean",
+            "format": "checkbox",
+            "propertyOrder": 700,
+            "default": true
+        },
+        "show_unpaid": {
+            "type": "boolean",
+            "format": "checkbox",
+            "propertyOrder": 800,
+            "default": true
+        },
+        "show_irregular": {
+            "type": "boolean",
+            "format": "checkbox",
+            "propertyOrder": 900,
+            "default": true
         }
     }
 }

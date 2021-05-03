@@ -21,6 +21,9 @@ KEY_API_SECRET = '#api_secret'
 KEY_ESTABLISHMENT_ID = 'establishment_id'
 KEY_START_DATE = 'start_date'
 KEY_END_DATE = 'end_date'
+KEY_SHOW_OPENED = 'show_opened'
+KEY_SHOW_UNPAID = 'show_unpaid'
+KEY_SHOW_IRREGULAR = 'show_irregular'
 
 # #### Keep for debug
 KEY_DEBUG = 'debug'
@@ -32,7 +35,10 @@ REQUIRED_PARAMETERS = [
     KEY_API_SECRET,
     KEY_ESTABLISHMENT_ID,
     KEY_START_DATE,
-    KEY_END_DATE
+    KEY_END_DATE,
+    KEY_SHOW_OPENED,
+    KEY_SHOW_UNPAID,
+    KEY_SHOW_IRREGULAR
 ]
 REQUIRED_IMAGE_PARS = []
 
@@ -90,6 +96,9 @@ class Component(CommonInterface):
         end_date = params.get(KEY_END_DATE)
         start_date_parsed = dateparser.parse(start_date).strftime('%Y-%m-%d')
         end_date_parsed = dateparser.parse(end_date).strftime('%Y-%m-%d')
+        show_opened = params.get(KEY_SHOW_OPENED)
+        show_unpaid = params.get(KEY_SHOW_UNPAID)
+        show_irregular = params.get(KEY_SHOW_IRREGULAR)
 
         # Request params
         request_url = urllib.parse.urljoin(
@@ -97,17 +106,26 @@ class Component(CommonInterface):
         logging.info(f'request_url - {request_url}')
         request_params = {
             'limit': 20,
-            'show_unpaid': 1,
-            'show_irregular': 1,
+            # 'show_opened': 1,
+            # 'show_unpaid': 1,
+            # 'show_irregular': 1,
             'range_from': f'{start_date_parsed}T00:00:00',
             'range_to': f'{end_date_parsed}T00:00:00'
         }
+
+        if show_opened:
+            request_params['show_opened'] = 1
+        if show_unpaid:
+            request_params['show_unpaid'] = 1
+        if show_irregular:
+            request_params['show_irregular'] = 1
 
         '''
         request_headers = {
             'Accept': 'application/json',
             'API-AUTHENTICATION': f'{api_key}:{api_secret}',
-            'Cookie': 'csrftoken=GnFV46R3djUM3BL1bdSEU4TVHSTLTroZhtADVrNM2u6W0fCo6rg1RR7CzWoCk2N9; sessionid=bc9ewx8l87fjga4n7nq7hinc4ko76tf5'
+            'Cookie': 'csrftoken=GnFV46R3djUM3BL1bdSEU4TVHSTLTroZhtADVrNM2u6W0fCo6rg1RR7CzWoCk2N9; \
+                sessionid=bc9ewx8l87fjga4n7nq7hinc4ko76tf5'
         }
         '''
 
@@ -125,7 +143,11 @@ class Component(CommonInterface):
         # output
         mappings, headers = self.get_header()
         full_headers = headers
+        # additional paramters for the output
         full_headers.append('establishment_id')
+        full_headers.append('range_from')
+        full_headers.append('range_to')
+        # writer prep
         f = open(f'{self.tables_out_path}/sales_summary.csv', 'w')
         data_writer = csv.DictWriter(f, fieldnames=full_headers)
         data_writer.writeheader()
@@ -156,11 +178,17 @@ class Component(CommonInterface):
 
                 # Parsing mapping and outputting the row
                 if data_in:
+                    additional_columns = {
+                        'establishment_id': e_id,
+                        'range_from': tmp_param['range_from'],
+                        'range_to': tmp_param['range_to']
+                    }
+
                     self.parse_mapping(
                         data_writer=data_writer,
                         data_in=data_in,
                         mapping=mappings,
-                        establishment_id=e_id
+                        user_columns=additional_columns
                     )
 
                     # Pagination parameters
@@ -225,20 +253,28 @@ class Component(CommonInterface):
         except Exception:
             return None
 
-    def parse_mapping(self, data_writer, data_in, mapping, establishment_id):
+    def parse_mapping(self, data_writer, data_in, mapping, user_columns):
+
+        establishment_id = user_columns['establishment_id']
 
         for row in data_in:
 
             tmp_data = {}
 
-            for i in mapping['sales_summary']:
-                tmp_data[mapping['sales_summary'][i]] = row.get(i)
+            try:
+                for i in mapping['sales_summary']:
+                    tmp_data[mapping['sales_summary'][i]] = row.get(i)
 
-            # adding esablishment id
-            tmp_data['establishment_id'] = establishment_id
+                # adding esablishment id
+                # tmp_data['establishment_id'] = establishment_id
+                for col in user_columns:
+                    tmp_data[col] = user_columns[col]
 
-            # writer data
-            data_writer.writerow(tmp_data)
+                # writer data
+                data_writer.writerow(tmp_data)
+
+            except Exception:
+                logging.warning(f'Establish id [{establishment_id}] - {row}')
 
 
 """
